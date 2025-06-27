@@ -1,8 +1,7 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from fpdf import FPDF
-import os
 
 app = FastAPI()
 
