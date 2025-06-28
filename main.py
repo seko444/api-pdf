@@ -1,39 +1,36 @@
 from fastapi import FastAPI, Form
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fpdf import FPDF
+from io import BytesIO
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Asegúrate de ajustar esto en producción
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.post("/pdf")
-def generar_pdf(
+async def generate_pdf(
     nombre: str = Form(...),
     dni: str = Form(...),
-    base_cotizacion: str = Form(...),
-    grupo_cotizacion: str = Form(...),
-    fecha_inicio: str = Form(...),
-    fecha_fin: str = Form(...),
-    dias_cotizados: str = Form(...)
+    base_cotizacion: str = Form(...)
 ):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Helvetica", size=12)
+    pdf.cell(200, 10, txt=f"Nombre: {nombre}", ln=True)
+    pdf.cell(200, 10, txt=f"DNI: {dni}", ln=True)
+    pdf.cell(200, 10, txt=f"Base de cotización: {base_cotizacion}", ln=True)
 
-    # Construir el contenido del PDF
-    contenido = (
-        f"Nombre: {nombre}\n"
-        f"DNI: {dni}\n"
-        f"Base de cotización: {base_cotizacion}\n"
-        f"Grupo de cotización: {grupo_cotizacion}\n"
-        f"Fecha de inicio: {fecha_inicio}\n"
-        f"Fecha de fin: {fecha_fin}\n"
-        f"Días cotizados: {dias_cotizados}"
-    )
+    buffer = BytesIO()
+    pdf.output(buffer)
+    buffer.seek(0)
 
-    pdf.multi_cell(0, 10, contenido)
-
-    # Generar PDF como bytes (evita errores de codificación)
-    pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
-
-    # Devolver el PDF como respuesta HTTP
-    return Response(content=pdf_bytes, media_type="application/pdf")
-
+    return StreamingResponse(buffer, media_type="application/pdf", headers={
+        "Content-Disposition": "attachment; filename=cotizacion.pdf"
+    })
