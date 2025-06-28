@@ -1,18 +1,10 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from fpdf import FPDF
+import io
 
 app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class QuoteRequest(BaseModel):
     nombre: str
@@ -31,7 +23,9 @@ async def generar_pdf(data: QuoteRequest):
     pdf.cell(200, 10, txt=f"Producto: {data.producto}", ln=True)
     pdf.cell(200, 10, txt=f"Precio: €{data.precio}", ln=True)
 
-    output_path = "cotizacion.pdf"
-    pdf.output(output_path)
+    # Guardar el PDF en memoria (no en disco)
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
 
-    return FileResponse(output_path, media_type='application/pdf', filename="cotizacion.pdf")
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=cotizacion.pdf"})
