@@ -1,9 +1,18 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fpdf import FPDF
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class QuoteRequest(BaseModel):
     nombre: str
@@ -20,7 +29,7 @@ async def generar_pdf(data: QuoteRequest):
     pdf.cell(200, 10, txt=f"Nombre: {data.nombre}", ln=True)
     pdf.cell(200, 10, txt=f"Email: {data.email}", ln=True)
     pdf.cell(200, 10, txt=f"Producto: {data.producto}", ln=True)
-    pdf.cell(200, 10, txt=f"Precio: ${data.precio}", ln=True)
+    pdf.cell(200, 10, txt=f"Precio: €{data.precio}", ln=True)
 
     output_path = "cotizacion.pdf"
     pdf.output(output_path)
