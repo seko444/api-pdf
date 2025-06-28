@@ -1,31 +1,39 @@
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, Form
+from fastapi.responses import Response
 from fpdf import FPDF
-import io
 
 app = FastAPI()
 
-class QuoteRequest(BaseModel):
-    nombre: str
-    email: str
-    producto: str
-    precio: float
-
 @app.post("/pdf")
-async def generar_pdf(data: QuoteRequest):
+def generar_pdf(
+    nombre: str = Form(...),
+    dni: str = Form(...),
+    base_cotizacion: str = Form(...),
+    grupo_cotizacion: str = Form(...),
+    fecha_inicio: str = Form(...),
+    fecha_fin: str = Form(...),
+    dias_cotizados: str = Form(...)
+):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Cotización", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"Nombre: {data.nombre}", ln=True)
-    pdf.cell(200, 10, txt=f"Email: {data.email}", ln=True)
-    pdf.cell(200, 10, txt=f"Producto: {data.producto}", ln=True)
-    pdf.cell(200, 10, txt=f"Precio: €{data.precio}", ln=True)
 
-    # Guardar el PDF en memoria (no en disco)
-    pdf_buffer = io.BytesIO()
-    pdf.output(pdf_buffer)
-    pdf_buffer.seek(0)
+    # Construir el contenido del PDF
+    contenido = (
+        f"Nombre: {nombre}\n"
+        f"DNI: {dni}\n"
+        f"Base de cotización: {base_cotizacion}\n"
+        f"Grupo de cotización: {grupo_cotizacion}\n"
+        f"Fecha de inicio: {fecha_inicio}\n"
+        f"Fecha de fin: {fecha_fin}\n"
+        f"Días cotizados: {dias_cotizados}"
+    )
 
-    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=cotizacion.pdf"})
+    pdf.multi_cell(0, 10, contenido)
+
+    # Generar PDF como bytes (evita errores de codificación)
+    pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
+
+    # Devolver el PDF como respuesta HTTP
+    return Response(content=pdf_bytes, media_type="application/pdf")
+
