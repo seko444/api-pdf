@@ -23,7 +23,6 @@ async def generar_pdf(data: QuoteRequest):
     pdf.cell(200, 10, txt=f"Producto: {data.producto}", ln=True)
     pdf.cell(200, 10, txt=f"Precio: €{data.precio}", ln=True)
 
-    # Guardar el PDF en memoria (no en disco)
     pdf_buffer = io.BytesIO()
     pdf.output(pdf_buffer)
     pdf_buffer.seek(0)
