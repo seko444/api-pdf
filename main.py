@@ -1,36 +1,31 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from fpdf import FPDF
-from io import BytesIO
+import io
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Asegúrate de ajustar esto en producción
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class QuoteRequest(BaseModel):
+    nombre: str
+    email: str
+    producto: str
+    precio: float
 
 @app.post("/pdf")
-async def generate_pdf(
-    nombre: str = Form(...),
-    dni: str = Form(...),
-    base_cotizacion: str = Form(...)
-):
+async def generar_pdf(data: QuoteRequest):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Helvetica", size=12)
-    pdf.cell(200, 10, txt=f"Nombre: {nombre}", ln=True)
-    pdf.cell(200, 10, txt=f"DNI: {dni}", ln=True)
-    pdf.cell(200, 10, txt=f"Base de cotización: {base_cotizacion}", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Cotización", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Nombre: {data.nombre}", ln=True)
+    pdf.cell(200, 10, txt=f"Email: {data.email}", ln=True)
+    pdf.cell(200, 10, txt=f"Producto: {data.producto}", ln=True)
+    pdf.cell(200, 10, txt=f"Precio: €{data.precio}", ln=True)
 
-    buffer = BytesIO()
-    pdf.output(buffer)
-    buffer.seek(0)
+    # Guardar el PDF en memoria (no en disco)
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
 
-    return StreamingResponse(buffer, media_type="application/pdf", headers={
-        "Content-Disposition": "attachment; filename=cotizacion.pdf"
-    })
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=cotizacion.pdf"})
